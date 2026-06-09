@@ -1,0 +1,16 @@
+[
+  {
+    "source": "gst",
+    "doc_id": "DEMO_NAMKEEN_NOTICE",
+    "title": "Demo Compliance Notice for Branded Packaged Namkeen",
+    "file": "tests/fixtures/demo_regulation_v1.txt",
+    "published_date": "2026-05-01"
+  },
+  {
+    "source": "gst",
+    "doc_id": "DEMO_NAMKEEN_NOTICE",
+    "title": "Demo Compliance Notice for Branded Packaged Namkeen",
+    "file": "tests/fixtures/demo_regulation_v2.txt",
+    "published_date": "2026-06-01"
+  }
+]

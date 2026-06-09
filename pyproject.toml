@@ -1,0 +1,8 @@
+[project]
+name = "regwatch"
+version = "0.1.0"
+description = "Agentic regulatory change intelligence for Indian MSMEs"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
