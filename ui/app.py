@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
 from agents.query_agent import QueryAgent
 from core.models import CompanyProfile
 from graph.pipeline import build_pipeline
+from scripts.seed_data import clean_runtime_data, run_local_versions
 
 st.set_page_config(
     page_title="RegWatch",
@@ -635,7 +636,10 @@ def init_session_state() -> None:
 
 
 def get_seeded_demo_doc_ids() -> list[str]:
-    conn = sqlite3.connect("data/registry.db")
+    db_path = Path("data/registry.db")
+    if not db_path.exists():
+        return []
+    conn = sqlite3.connect(db_path)
     try:
         rows = conn.execute("select doc_id from documents where doc_id = 'DEMO_NAMKEEN_NOTICE'").fetchall()
         return [row[0] for row in rows]
@@ -644,12 +648,24 @@ def get_seeded_demo_doc_ids() -> list[str]:
 
 
 def get_all_seeded_doc_ids() -> list[str]:
-    conn = sqlite3.connect("data/registry.db")
+    db_path = Path("data/registry.db")
+    if not db_path.exists():
+        return []
+    conn = sqlite3.connect(db_path)
     try:
         rows = conn.execute("select doc_id from documents order by doc_id").fetchall()
         return [row[0] for row in rows]
     finally:
         conn.close()
+
+
+def ensure_demo_seeded() -> list[str]:
+    existing = get_seeded_demo_doc_ids()
+    if existing:
+        return existing
+    Path("data").mkdir(parents=True, exist_ok=True)
+    run_local_versions(Path("tests/fixtures/demo_manifest.json"))
+    return get_seeded_demo_doc_ids()
 
 
 def title_case(value: str) -> str:
@@ -754,7 +770,7 @@ def run_pipeline_for_mode(profile: CompanyProfile, run_mode: str) -> dict[str, A
     pipeline = get_pipeline()
     if run_mode == "Demo Mode":
         trigger = "seeded"
-        doc_ids = get_seeded_demo_doc_ids()
+        doc_ids = ensure_demo_seeded()
     elif run_mode == "Seeded Dataset":
         trigger = "seeded"
         doc_ids = get_all_seeded_doc_ids()
