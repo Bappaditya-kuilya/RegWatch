@@ -26,144 +26,584 @@ st.set_page_config(
 )
 
 
-def apply_theme() -> None:
+def inject_css() -> None:
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
         :root {
-          --bg: #f5f7fb;
-          --panel: #ffffff;
-          --line: #d8dee9;
-          --text: #132033;
-          --muted: #5f6b7a;
-          --brand: #12355b;
-          --brand-soft: #e9f0f7;
-          --accent: #9a3412;
-          --critical: #b42318;
-          --major: #b54708;
-          --minor: #475467;
-          --success: #067647;
+          --bg-canvas: #0C0C0F;
+          --bg-surface: #13131A;
+          --bg-elevated: #1C1C26;
+          --bg-overlay: #252535;
+          --border-subtle: rgba(255,255,255,0.06);
+          --border-default: rgba(255,255,255,0.10);
+          --border-strong: rgba(255,255,255,0.18);
+          --text-primary: #F0F0F4;
+          --text-secondary: #8E8E9E;
+          --text-tertiary: #5A5A6E;
+          --text-inverse: #0C0C0F;
+          --accent: #00C9A7;
+          --accent-dim: rgba(0,201,167,0.12);
+          --accent-border: rgba(0,201,167,0.30);
+          --critical: #F87171;
+          --critical-bg: rgba(248,113,113,0.10);
+          --critical-border: rgba(248,113,113,0.25);
+          --major: #FBBF24;
+          --major-bg: rgba(251,191,36,0.10);
+          --major-border: rgba(251,191,36,0.25);
+          --minor: #60A5FA;
+          --minor-bg: rgba(96,165,250,0.10);
+          --minor-border: rgba(96,165,250,0.25);
+          --success: #34D399;
+          --success-bg: rgba(52,211,153,0.10);
+          --success-border: rgba(52,211,153,0.25);
+          --running: #A78BFA;
+          --running-bg: rgba(167,139,250,0.10);
+          --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
         }
+
+        html, body, [class*="css"]  {
+          font-family: var(--font-sans);
+        }
+
         .stApp {
-          background: linear-gradient(180deg, #f8fafc 0%, #eef3f8 100%);
+          background: var(--bg-canvas);
+          color: var(--text-primary);
         }
-        .block-container {
-          padding-top: 1.5rem;
+
+        .main .block-container {
+          max-width: 1180px;
+          padding-top: 1.6rem;
           padding-bottom: 2rem;
         }
-        .rw-hero {
-          background: linear-gradient(135deg, #0f2742 0%, #163a63 100%);
-          color: #f8fbff;
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 18px;
-          padding: 1.4rem 1.6rem;
-          margin-bottom: 1rem;
-          box-shadow: 0 16px 40px rgba(10, 27, 49, 0.18);
+
+        section[data-testid="stSidebar"] {
+          background: var(--bg-surface);
+          border-right: 1px solid var(--border-subtle);
         }
-        .rw-hero-title {
-          font-size: 1.6rem;
-          font-weight: 700;
-          margin-bottom: 0.3rem;
-          letter-spacing: -0.02em;
+
+        #MainMenu, footer, header {
+          visibility: hidden;
         }
-        .rw-hero-subtitle {
-          color: rgba(248, 251, 255, 0.82);
-          font-size: 0.96rem;
-          line-height: 1.5;
+
+        .stMarkdown, .stText, .stCaption, p, li, div {
+          color: var(--text-primary);
         }
-        .rw-card {
-          background: var(--panel);
-          border: 1px solid var(--line);
-          border-radius: 16px;
-          padding: 1rem 1.1rem;
-          box-shadow: 0 8px 24px rgba(16, 24, 40, 0.05);
-          margin-bottom: 1rem;
+
+        .stRadio label, .stSelectbox label, .stTextInput label {
+          color: var(--text-secondary) !important;
         }
-        .rw-card h4 {
-          margin: 0 0 0.65rem 0;
-          color: var(--text);
-          font-size: 0.95rem;
-          letter-spacing: 0.01em;
+
+        .stButton > button {
+          background: var(--accent);
+          color: var(--text-inverse);
+          border: 1px solid var(--accent);
+          border-radius: 8px;
+          height: 38px;
+          font-size: 13px;
+          font-weight: 500;
+          transition: all 150ms ease;
         }
-        .rw-metric-label {
-          color: var(--muted);
-          font-size: 0.78rem;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
+
+        .stButton > button:hover {
+          background: #00b496;
+          border-color: #00b496;
+          transform: translateY(-1px);
         }
-        .rw-metric-value {
-          color: var(--text);
-          font-size: 1.7rem;
-          font-weight: 700;
-          margin-top: 0.18rem;
+
+        .stTextInput > div > div > input {
+          background: var(--bg-elevated);
+          color: var(--text-primary);
+          border: 1px solid var(--border-default);
+          border-radius: 8px;
         }
-        .rw-inline-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 0.6rem;
+
+        .stTextInput > div > div > input::placeholder {
+          color: var(--text-tertiary);
         }
-        .rw-inline-item {
-          border: 1px solid var(--line);
+
+        .stTabs [data-baseweb="tab-list"] {
+          background: transparent;
+          border-bottom: 1px solid var(--border-subtle);
+          gap: 0;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+          height: 44px;
+          background: transparent;
+          color: var(--text-secondary);
+          padding-left: 0;
+          padding-right: 20px;
+        }
+
+        .stTabs [aria-selected="true"] {
+          color: var(--accent);
+        }
+
+        .stDataFrame, [data-testid="stDataFrame"] {
           border-radius: 12px;
-          padding: 0.7rem 0.8rem;
-          background: #fbfcfe;
+          overflow: hidden;
+          border: 1px solid var(--border-subtle);
+          background: var(--bg-surface);
         }
-        .rw-inline-item .label {
-          font-size: 0.74rem;
-          color: var(--muted);
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
+
+        [data-testid="stMetric"] {
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
+          border-radius: 12px;
+          padding: 14px 16px;
         }
-        .rw-inline-item .value {
-          font-size: 0.95rem;
-          color: var(--text);
-          margin-top: 0.18rem;
+
+        [data-testid="stMetricLabel"] {
+          color: var(--text-tertiary);
+        }
+
+        [data-testid="stMetricValue"] {
+          color: var(--text-primary);
+        }
+
+        .streamlit-expanderHeader {
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
+          border-radius: 8px;
+        }
+
+        .rw-topbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 24px;
+          margin-bottom: 24px;
+          padding: 24px;
+          background: linear-gradient(180deg, rgba(19,19,26,1) 0%, rgba(17,17,24,1) 100%);
+          border: 1px solid var(--border-subtle);
+          border-radius: 16px;
+          box-shadow: 0 12px 32px rgba(0,0,0,0.22);
+        }
+
+        .rw-topbar-title {
+          font-size: 24px;
+          line-height: 1.25;
           font-weight: 600;
+          margin: 0 0 8px 0;
+          color: var(--text-primary);
         }
-        .rw-status {
-          display: inline-block;
+
+        .rw-topbar-copy {
+          font-size: 14px;
+          line-height: 1.6;
+          color: var(--text-secondary);
+          max-width: 70ch;
+          margin: 0;
+        }
+
+        .rw-panel {
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 6px 18px rgba(0,0,0,0.16);
+        }
+
+        .rw-panel + .rw-panel {
+          margin-top: 16px;
+        }
+
+        .rw-section-title {
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--text-primary);
+          margin: 0 0 12px 0;
+        }
+
+        .rw-section-copy {
+          font-size: 13px;
+          color: var(--text-secondary);
+          line-height: 1.5;
+          margin: 0;
+        }
+
+        .rw-company {
+          display: grid;
+          gap: 12px;
+        }
+
+        .rw-company-row {
+          padding: 10px 12px;
+          border: 1px solid var(--border-subtle);
+          border-radius: 8px;
+          background: var(--bg-elevated);
+        }
+
+        .rw-company-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+          margin-bottom: 4px;
+          letter-spacing: 0.02em;
+        }
+
+        .rw-company-value {
+          font-size: 13px;
+          color: var(--text-primary);
+          line-height: 1.4;
+        }
+
+        .rw-code {
+          font-family: var(--font-mono);
+        }
+
+        .rw-source-list {
+          display: grid;
+          gap: 8px;
+        }
+
+        .rw-source-item {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 10px 12px;
+          border-radius: 8px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-subtle);
+          font-size: 13px;
+        }
+
+        .rw-source-status {
+          color: var(--success);
+        }
+
+        .rw-source-planned {
+          color: var(--text-tertiary);
+        }
+
+        .rw-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 3px 8px;
           border-radius: 999px;
-          padding: 0.24rem 0.65rem;
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.03em;
+          font-size: 11px;
+          font-weight: 500;
           border: 1px solid transparent;
         }
-        .rw-status-critical {
+
+        .rw-badge-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        .rw-badge-critical {
           color: var(--critical);
-          background: #fef3f2;
-          border-color: #fecdca;
+          background: var(--critical-bg);
+          border-color: var(--critical-border);
         }
-        .rw-status-major {
+
+        .rw-badge-critical .rw-badge-dot {
+          background: var(--critical);
+          animation: pulse-critical 2s ease-in-out infinite;
+        }
+
+        .rw-badge-major {
           color: var(--major);
-          background: #fff7ed;
-          border-color: #fed7aa;
+          background: var(--major-bg);
+          border-color: var(--major-border);
         }
-        .rw-status-minor {
+
+        .rw-badge-major .rw-badge-dot {
+          background: var(--major);
+        }
+
+        .rw-badge-minor {
           color: var(--minor);
-          background: #f8fafc;
-          border-color: #d0d5dd;
+          background: var(--minor-bg);
+          border-color: var(--minor-border);
         }
-        .rw-status-success {
+
+        .rw-badge-minor .rw-badge-dot {
+          background: var(--minor);
+        }
+
+        .rw-badge-success {
           color: var(--success);
-          background: #ecfdf3;
-          border-color: #abefc6;
+          background: var(--success-bg);
+          border-color: var(--success-border);
         }
-        .rw-caption {
-          color: var(--muted);
-          font-size: 0.84rem;
-          line-height: 1.45;
+
+        .rw-badge-success .rw-badge-dot {
+          background: var(--success);
         }
-        .rw-section-title {
-          font-size: 1.02rem;
-          font-weight: 700;
-          color: var(--text);
-          margin-bottom: 0.65rem;
+
+        .rw-pipeline {
+          display: grid;
+          gap: 8px;
         }
-        .rw-sidebar-note {
-          color: var(--muted);
-          font-size: 0.84rem;
+
+        .rw-pipeline-status {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-subtle);
+          border-radius: 8px;
+          font-size: 13px;
+        }
+
+        .rw-pipeline-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+
+        .rw-pipeline-idle .rw-pipeline-dot {
+          background: var(--text-tertiary);
+        }
+
+        .rw-pipeline-running .rw-pipeline-dot {
+          background: var(--running);
+          animation: pulse-running 1.2s ease-in-out infinite;
+        }
+
+        .rw-pipeline-complete .rw-pipeline-dot {
+          background: var(--success);
+        }
+
+        .rw-pipeline-meta {
+          margin-left: auto;
+          color: var(--text-tertiary);
+          font-size: 11px;
+        }
+
+        .rw-task-card {
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
+          border-left-width: 3px;
+          border-radius: 12px;
+          padding: 20px;
+          transition: transform 180ms ease, border-color 180ms ease;
+        }
+
+        .rw-task-card:hover {
+          transform: translateY(-2px);
+          border-color: var(--border-default);
+        }
+
+        .rw-task-critical { border-left-color: var(--critical); }
+        .rw-task-major { border-left-color: var(--major); }
+        .rw-task-minor { border-left-color: var(--minor); }
+
+        .rw-task-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+
+        .rw-task-title {
+          margin: 0 0 10px 0;
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--text-primary);
+          line-height: 1.3;
+        }
+
+        .rw-task-description {
+          margin: 0 0 14px 0;
+          font-size: 14px;
+          line-height: 1.7;
+          color: var(--text-secondary);
+          max-width: 65ch;
+        }
+
+        .rw-task-deadline {
+          font-size: 13px;
+          color: var(--text-secondary);
+        }
+
+        .rw-task-deadline-urgent {
+          color: var(--critical);
+        }
+
+        .rw-penalty {
+          display: block;
+          padding: 10px 12px;
+          background: var(--critical-bg);
+          border: 1px solid var(--critical-border);
+          border-radius: 8px;
+          color: var(--critical);
+          font-size: 13px;
           line-height: 1.5;
+          margin-bottom: 16px;
+        }
+
+        .rw-task-footer {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: center;
+        }
+
+        .rw-citation {
+          font-family: var(--font-mono);
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
+        .rw-change-row {
+          display: grid;
+          grid-template-columns: 104px 128px 1fr 156px 84px;
+          gap: 16px;
+          align-items: start;
+          padding: 14px 16px;
+          border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .rw-change-row:last-child {
+          border-bottom: none;
+        }
+
+        .rw-change-type {
+          display: inline-flex;
+          align-items: center;
+          padding: 3px 8px;
+          border-radius: 999px;
+          background: var(--bg-overlay);
+          color: var(--text-secondary);
+          font-size: 11px;
+          border: 1px solid var(--border-subtle);
+        }
+
+        .rw-change-new {
+          margin: 0 0 4px 0;
+          font-size: 13px;
+          line-height: 1.5;
+          color: var(--text-primary);
+        }
+
+        .rw-change-old {
+          margin: 0;
+          font-size: 11px;
+          line-height: 1.5;
+          color: var(--text-tertiary);
+        }
+
+        .rw-change-source {
+          font-family: var(--font-mono);
+          font-size: 11px;
+          color: var(--accent);
+        }
+
+        .rw-change-date {
+          display: block;
+          font-family: var(--font-sans);
+          color: var(--text-tertiary);
+          margin-top: 4px;
+        }
+
+        .rw-confidence-track {
+          height: 3px;
+          background: var(--border-subtle);
+          border-radius: 99px;
+          margin: 4px 0;
+        }
+
+        .rw-confidence-fill {
+          height: 100%;
+          background: var(--accent);
+          border-radius: 99px;
+        }
+
+        .rw-confidence-label {
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+
+        .rw-message {
+          background: var(--bg-elevated);
+          border: 1px solid var(--border-subtle);
+          border-radius: 12px;
+          padding: 16px 20px;
+          animation: item-appear 250ms cubic-bezier(0.16,1,0.3,1) both;
+        }
+
+        .rw-message-meta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 10px;
+        }
+
+        .rw-message-intent {
+          font-family: var(--font-mono);
+          font-size: 11px;
+          color: var(--accent);
+          background: var(--accent-dim);
+          border: 1px solid var(--accent-border);
+          padding: 2px 8px;
+          border-radius: 999px;
+        }
+
+        .rw-message-time {
+          font-size: 11px;
+          color: var(--text-tertiary);
+        }
+
+        .rw-message-body {
+          font-size: 14px;
+          line-height: 1.7;
+          color: var(--text-primary);
+        }
+
+        .rw-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          margin-top: 12px;
+        }
+
+        .rw-tag {
+          font-family: var(--font-mono);
+          font-size: 11px;
+          color: var(--text-secondary);
+          background: var(--bg-overlay);
+          border: 1px solid var(--border-subtle);
+          padding: 3px 8px;
+          border-radius: 999px;
+        }
+
+        .rw-empty {
+          padding: 18px 0;
+          color: var(--text-secondary);
+          font-size: 14px;
+        }
+
+        @keyframes pulse-critical {
+          0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
+          50% { opacity: 0.7; transform: scale(0.9); box-shadow: 0 0 0 4px rgba(248,113,113,0); }
+        }
+
+        @keyframes pulse-running {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(167,139,250,0.5); }
+          50% { box-shadow: 0 0 0 6px rgba(167,139,250,0); }
+        }
+
+        @keyframes item-appear {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+          }
         }
         </style>
         """,
@@ -197,9 +637,7 @@ def init_session_state() -> None:
 def get_seeded_demo_doc_ids() -> list[str]:
     conn = sqlite3.connect("data/registry.db")
     try:
-        rows = conn.execute(
-            "select doc_id from documents where doc_id = 'DEMO_NAMKEEN_NOTICE'"
-        ).fetchall()
+        rows = conn.execute("select doc_id from documents where doc_id = 'DEMO_NAMKEEN_NOTICE'").fetchall()
         return [row[0] for row in rows]
     finally:
         conn.close()
@@ -214,161 +652,101 @@ def get_all_seeded_doc_ids() -> list[str]:
         conn.close()
 
 
-def format_severity(severity: str) -> str:
-    return severity.replace("_", " ").title()
-
-
-def severity_class(severity: str) -> str:
-    if severity == "critical":
-        return "rw-status rw-status-critical"
-    if severity == "major":
-        return "rw-status rw-status-major"
-    return "rw-status rw-status-minor"
+def title_case(value: str) -> str:
+    return value.replace("_", " ").title()
 
 
 def priority_label(priority: int) -> str:
-    mapping = {
-        1: "Priority 1",
-        2: "Priority 2",
-        3: "Priority 3",
-        4: "Priority 4",
-        5: "Priority 5",
-    }
-    return mapping.get(priority, f"Priority {priority}")
+    return f"Priority {priority}"
 
 
-def serialize_changes(changes: list[Any]) -> pd.DataFrame:
-    rows = []
-    for change in changes:
-        rows.append(
-            {
-                "Document": change.doc_id,
-                "Type": format_severity(change.change_type.value),
-                "Severity": format_severity(change.severity.value),
-                "Current Summary": change.new_text_summary,
-                "Previous Summary": change.old_text_summary,
-                "Confidence": f"{change.confidence:.0%}",
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def serialize_tasks(tasks: list[Any]) -> pd.DataFrame:
-    rows = []
-    for task in tasks:
-        rows.append(
-            {
-                "Priority": priority_label(task.priority),
-                "Title": task.title,
-                "Status": task.status.title(),
-                "Deadline": task.deadline.strftime("%d %b %Y") if task.deadline else "No fixed date",
-                "Citation": task.citation,
-            }
-        )
-    return pd.DataFrame(rows)
-
-
-def render_header(profile: CompanyProfile) -> None:
-    st.markdown(
-        f"""
-        <div class="rw-hero">
-          <div class="rw-hero-title">RegWatch Control Center</div>
-          <div class="rw-hero-subtitle">
-            Version-aware regulatory monitoring for {profile.company_name}. Track document change history,
-            applicability, and operational actions through a single review surface.
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+def severity_badge(severity: str) -> str:
+    normalized = severity.lower()
+    if normalized == "critical":
+        klass = "rw-badge rw-badge-critical"
+    elif normalized == "major":
+        klass = "rw-badge rw-badge-major"
+    elif normalized == "success":
+        klass = "rw-badge rw-badge-success"
+    else:
+        klass = "rw-badge rw-badge-minor"
+    return (
+        f'<span class="{klass}">'
+        f'<span class="rw-badge-dot"></span>{title_case(normalized)}</span>'
     )
 
 
-def render_metric_card(label: str, value: str, caption: str = "") -> None:
-    st.markdown(
-        f"""
-        <div class="rw-card">
-          <div class="rw-metric-label">{label}</div>
-          <div class="rw-metric-value">{value}</div>
-          <div class="rw-caption">{caption}</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+def pipeline_status_html(result: dict[str, Any], run_mode: str, last_run_at: str | None) -> str:
+    if not result:
+        return (
+            '<div class="rw-pipeline rw-panel">'
+            '<div class="rw-section-title">Pipeline</div>'
+            '<div class="rw-pipeline-status rw-pipeline-idle">'
+            '<span class="rw-pipeline-dot"></span>'
+            '<span>Idle</span>'
+            '<span class="rw-pipeline-meta">No run yet</span>'
+            '</div></div>'
+        )
+    changes = len(result.get("detected_changes", []))
+    tasks = len(result.get("action_plan", []))
+    return (
+        '<div class="rw-pipeline rw-panel">'
+        '<div class="rw-section-title">Pipeline</div>'
+        '<div class="rw-pipeline-status rw-pipeline-complete">'
+        '<span class="rw-pipeline-dot"></span>'
+        '<span>Complete</span>'
+        f'<span class="rw-pipeline-meta">{changes} changes, {tasks} tasks</span>'
+        '</div>'
+        f'<div class="rw-section-copy">Mode: {run_mode} | Last run: {last_run_at or "Unknown"}</div>'
+        "</div>"
     )
 
 
-def render_sidebar(profile: CompanyProfile) -> str:
+def render_sidebar(profile: CompanyProfile, result: dict[str, Any], last_run_mode: str, last_run_at: str | None) -> str:
     with st.sidebar:
-        st.markdown("## Workspace")
+        st.markdown('<div class="rw-section-title">RegWatch</div>', unsafe_allow_html=True)
         st.markdown(
             f"""
-            <div class="rw-card">
-              <h4>Tenant Profile</h4>
-              <div class="rw-inline-grid">
-                <div class="rw-inline-item">
-                  <div class="label">Company</div>
-                  <div class="value">{profile.company_name}</div>
+            <div class="rw-panel">
+              <div class="rw-section-title">Company</div>
+              <div class="rw-company">
+                <div class="rw-company-row">
+                  <div class="rw-company-label">Tenant</div>
+                  <div class="rw-company-value">{profile.company_name}</div>
                 </div>
-                <div class="rw-inline-item">
-                  <div class="label">State</div>
-                  <div class="value">{profile.state}</div>
+                <div class="rw-company-row">
+                  <div class="rw-company-label">Business Type</div>
+                  <div class="rw-company-value">{profile.business_type}</div>
                 </div>
-                <div class="rw-inline-item">
-                  <div class="label">Business Type</div>
-                  <div class="value">{profile.business_type}</div>
-                </div>
-                <div class="rw-inline-item">
-                  <div class="label">Turnover</div>
-                  <div class="value">{profile.annual_turnover_range}</div>
+                <div class="rw-company-row">
+                  <div class="rw-company-label">GSTIN</div>
+                  <div class="rw-company-value rw-code">{profile.gstin or "Not configured"}</div>
                 </div>
               </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
+        st.markdown(pipeline_status_html(result, last_run_mode, last_run_at), unsafe_allow_html=True)
         run_mode = st.radio(
             "Execution Mode",
             ["Demo Mode", "Seeded Dataset", "Live Scrape"],
-            help="Demo Mode runs the controlled version-history scenario. Seeded Dataset uses all ingested documents. Live Scrape fetches fresh source data.",
+            help="Demo Mode is the most stable path for controlled version-diff validation.",
         )
-
         st.markdown(
             """
-            <div class="rw-card">
-              <h4>Source Coverage</h4>
-              <div class="rw-inline-grid">
-                <div class="rw-inline-item">
-                  <div class="label">GST</div>
-                  <div class="value">Enabled</div>
-                </div>
-                <div class="rw-inline-item">
-                  <div class="label">MCA</div>
-                  <div class="value">Enabled</div>
-                </div>
-                <div class="rw-inline-item">
-                  <div class="label">FSSAI</div>
-                  <div class="value">Enabled</div>
-                </div>
-                <div class="rw-inline-item">
-                  <div class="label">eGazette</div>
-                  <div class="value">Planned</div>
-                </div>
+            <div class="rw-panel">
+              <div class="rw-section-title">Data Sources</div>
+              <div class="rw-source-list">
+                <div class="rw-source-item"><span>GST Circulars</span><span class="rw-source-status">Enabled</span></div>
+                <div class="rw-source-item"><span>MCA Notifications</span><span class="rw-source-status">Enabled</span></div>
+                <div class="rw-source-item"><span>FSSAI Orders</span><span class="rw-source-status">Enabled</span></div>
+                <div class="rw-source-item"><span>eGazette</span><span class="rw-source-planned">Planned</span></div>
               </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-        st.markdown(
-            """
-            <div class="rw-sidebar-note">
-              Demo Mode is the recommended operator path for reviewing the controlled version-aware scenario.
-              Live Scrape remains available for source acquisition and ingestion checks.
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
     return run_mode
 
 
@@ -376,20 +754,19 @@ def run_pipeline_for_mode(profile: CompanyProfile, run_mode: str) -> dict[str, A
     pipeline = get_pipeline()
     if run_mode == "Demo Mode":
         trigger = "seeded"
-        seeded_doc_ids = get_seeded_demo_doc_ids()
+        doc_ids = get_seeded_demo_doc_ids()
     elif run_mode == "Seeded Dataset":
         trigger = "seeded"
-        seeded_doc_ids = get_all_seeded_doc_ids()
+        doc_ids = get_all_seeded_doc_ids()
     else:
         trigger = "manual"
-        seeded_doc_ids = []
-
+        doc_ids = []
     return pipeline.invoke(
         {
             "trigger": trigger,
             "company_profile": profile,
             "user_query": "",
-            "new_doc_ids": seeded_doc_ids,
+            "new_doc_ids": doc_ids,
             "detected_changes": [],
             "impact_assessments": [],
             "action_plan": [],
@@ -403,165 +780,202 @@ def run_pipeline_for_mode(profile: CompanyProfile, run_mode: str) -> dict[str, A
     )
 
 
-def render_overview(result: dict[str, Any], run_mode: str, last_run_at: str | None) -> None:
+def render_header(profile: CompanyProfile) -> None:
+    st.markdown(
+        f"""
+        <div class="rw-topbar">
+          <div>
+            <h1 class="rw-topbar-title">Compliance Intelligence Terminal</h1>
+            <p class="rw-topbar-copy">
+              Monitor regulatory version changes, assess applicability for {profile.company_name},
+              and convert detected amendments into action-ready compliance work.
+            </p>
+          </div>
+          <div class="rw-code" style="font-size:12px;color:var(--text-tertiary);">
+            tenant={profile.state.lower().replace(' ', '_')}_food_processing
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_metrics(result: dict[str, Any], run_mode: str, last_run_at: str | None) -> None:
     changes = result.get("detected_changes", [])
     tasks = result.get("action_plan", [])
     assessments = result.get("impact_assessments", [])
-    applicable = sum(1 for a in assessments if getattr(a, "is_applicable", False))
-    review_flag = "Required" if result.get("human_review_needed") else "Not required"
-
+    applicable = sum(1 for item in assessments if getattr(item, "is_applicable", False))
+    critical = sum(1 for task in tasks if getattr(task, "priority", 5) == 1)
     col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        render_metric_card("Detected Changes", str(len(changes)), f"Run mode: {run_mode}")
-    with col2:
-        render_metric_card("Applicable Changes", str(applicable), "Changes mapped to tenant operations")
-    with col3:
-        render_metric_card("Open Tasks", str(len(tasks)), "Compliance actions prepared")
-    with col4:
-        render_metric_card("Human Review", review_flag, f"Last run: {last_run_at or 'Not run yet'}")
-
+    col1.metric("Changes Detected", len(changes), help=f"Run mode: {run_mode}")
+    col2.metric("Applicable Changes", applicable)
+    col3.metric("Compliance Tasks", len(tasks))
+    col4.metric("Critical Tasks", critical)
+    if last_run_at:
+        st.caption(f"Last execution: {last_run_at}")
     if result.get("errors"):
         st.error("\n".join(result["errors"]))
 
 
-def render_dashboard_tab(result: dict[str, Any]) -> None:
-    changes = result.get("detected_changes", [])
-    assessments = result.get("impact_assessments", [])
-
-    left, right = st.columns([1.45, 1], gap="large")
-    with left:
-        st.markdown('<div class="rw-section-title">Change Register</div>', unsafe_allow_html=True)
-        if not changes:
-            st.info("No changes available. Run the pipeline to populate the register.")
-        else:
-            st.dataframe(serialize_changes(changes), use_container_width=True, hide_index=True)
-            for change in changes:
-                st.markdown(
-                    f'<div class="{severity_class(change.severity.value)}">{format_severity(change.severity.value)}</div>',
-                    unsafe_allow_html=True,
-                )
-                with st.expander(f"{change.doc_id} | {change.change_type.value.replace('_', ' ').title()}"):
-                    st.write(change.new_text_summary)
-                    st.caption(f"Previous state: {change.old_text_summary}")
-                    st.caption(f"Affected clauses: {', '.join(change.affected_clauses) or 'Not identified'}")
-                    st.caption(f"Confidence: {change.confidence:.0%}")
-
-    with right:
-        st.markdown('<div class="rw-section-title">Applicability Review</div>', unsafe_allow_html=True)
-        if not assessments:
-            st.info("Applicability assessments will appear here after a pipeline run.")
-        else:
-            for assessment in assessments:
-                badge = severity_class(assessment.risk_level.value)
-                st.markdown(
-                    f"""
-                    <div class="rw-card">
-                      <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
-                        <h4>{assessment.change_id}</h4>
-                        <span class="{badge}">{format_severity(assessment.risk_level.value)}</span>
-                      </div>
-                      <div class="rw-caption">{assessment.applicability_reason}</div>
-                      <div class="rw-caption" style="margin-top:0.55rem;">
-                        Operations: {', '.join(assessment.affected_operations) or 'Not specified'}
-                      </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-
-def render_tasks_tab(result: dict[str, Any]) -> None:
-    tasks = result.get("action_plan", [])
-    st.markdown('<div class="rw-section-title">Compliance Work Queue</div>', unsafe_allow_html=True)
-    if not tasks:
-        st.info("No tasks are available for the current run.")
+def render_change_register(changes: list[Any]) -> None:
+    st.markdown('<div class="rw-section-title">Change Register</div>', unsafe_allow_html=True)
+    if not changes:
+        st.markdown('<div class="rw-empty">No changes detected in the current run.</div>', unsafe_allow_html=True)
         return
-
-    st.dataframe(serialize_tasks(tasks), use_container_width=True, hide_index=True)
-    for task in tasks:
-        with st.expander(f"{priority_label(task.priority)} | {task.title}"):
-            st.write(task.description)
-            st.caption(f"Source: {task.citation}")
-            st.caption(f"Status: {task.status.title()}")
-            if task.deadline_source:
-                st.caption(f"Deadline source: {task.deadline_source}")
-            if task.penalty_if_missed:
-                st.caption(f"Penalty context: {task.penalty_if_missed}")
-
-
-def render_query_tab(profile: CompanyProfile) -> None:
-    st.markdown('<div class="rw-section-title">Regulatory Assistant</div>', unsafe_allow_html=True)
-    query = st.text_input(
-        "Ask a question about the current regulatory position, recent changes, business impact, or required actions.",
-        placeholder="What changed in branded packaged namkeen compliance requirements?",
-    )
-    if st.button("Run Query", use_container_width=False) and query:
-        agent = get_query_agent()
-        with st.spinner("Resolving query against the active knowledge base..."):
-            st.session_state["last_query_result"] = agent.answer(query, profile.model_dump())
-
-    result = st.session_state.get("last_query_result")
-    if result:
+    st.markdown('<div class="rw-panel" style="padding:0;">', unsafe_allow_html=True)
+    for change in changes:
+        confidence = int(change.confidence * 100)
         st.markdown(
             f"""
-            <div class="rw-card">
-              <h4>Assistant Response</h4>
-              <div class="rw-caption">Route: {result.get("query_type", "unknown")}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.write(result["answer"])
-        citations = ", ".join(sorted(set(result.get("citations", []))))
-        if citations:
-            st.caption(f"Sources: {citations}")
-
-
-def render_graph_tab() -> None:
-    from core.version_graph import VersionGraph
-
-    st.markdown('<div class="rw-section-title">Version History</div>', unsafe_allow_html=True)
-    vg = VersionGraph()
-    recent = vg.get_recent_changes(days=90)
-    if not recent:
-        st.info("No version history is available yet.")
-        return
-
-    rows = []
-    for change in recent:
-        rows.append(
-            {
-                "Document": change.get("doc_id", ""),
-                "Severity": format_severity(str(change.get("severity", "minor"))),
-                "Type": str(change.get("change_type", "")).replace("_", " ").title(),
-                "Summary": str(change.get("new_text_summary", ""))[:160],
-            }
-        )
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-
-def main() -> None:
-    apply_theme()
-    init_session_state()
-    profile = load_profile()
-    render_header(profile)
-    run_mode = render_sidebar(profile)
-
-    primary_col, secondary_col = st.columns([1.45, 0.85], gap="large")
-    with primary_col:
-        st.markdown(
-            """
-            <div class="rw-card">
-              <h4>Execution Control</h4>
-              <div class="rw-caption">
-                Run the pipeline against the selected execution mode. Demo Mode is the recommended production-style review path for controlled validation and stakeholder demos.
+            <div class="rw-change-row">
+              <div>{severity_badge(change.severity.value)}</div>
+              <div><span class="rw-change-type">{title_case(change.change_type.value)}</span></div>
+              <div>
+                <p class="rw-change-new">{change.new_text_summary}</p>
+                <p class="rw-change-old">Previously: {change.old_text_summary}</p>
+              </div>
+              <div>
+                <span class="rw-change-source">{change.doc_id}</span>
+                <span class="rw-change-date">{change.new_version}</span>
+              </div>
+              <div>
+                <div class="rw-confidence-track"><div class="rw-confidence-fill" style="width:{confidence}%"></div></div>
+                <span class="rw-confidence-label">{confidence}%</span>
               </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-    with secondary_col:
-        if st.button("Run Pipeline", type="primary", use_container_width=True):
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
+def render_task_card(task: Any) -> None:
+    severity = "minor"
+    if task.priority == 1:
+        severity = "critical"
+    elif task.priority in (2, 3):
+        severity = "major"
+    deadline = task.deadline.strftime("%d %b %Y") if task.deadline else "No fixed date"
+    deadline_class = "rw-task-deadline"
+    if task.deadline and (task.deadline - datetime.now()).days < 30:
+        deadline_class += " rw-task-deadline-urgent"
+    st.markdown(
+        f"""
+        <div class="rw-task-card rw-task-{severity}">
+          <div class="rw-task-header">
+            {severity_badge(severity)}
+            <span class="{deadline_class}">{deadline}</span>
+          </div>
+          <h3 class="rw-task-title">{task.title}</h3>
+          <p class="rw-task-description">{task.description}</p>
+          {"<div class='rw-penalty'>Penalty: " + task.penalty_if_missed + "</div>" if task.penalty_if_missed else ""}
+          <div class="rw-task-footer">
+            <span class="rw-citation">{task.citation}</span>
+            <span class="rw-citation">{task.status.title()}</span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_tasks(tasks: list[Any]) -> None:
+    st.markdown('<div class="rw-section-title">Compliance Queue</div>', unsafe_allow_html=True)
+    if not tasks:
+        st.markdown('<div class="rw-empty">No compliance tasks are available for the current run.</div>', unsafe_allow_html=True)
+        return
+    rows = [
+        {
+            "Priority": priority_label(task.priority),
+            "Title": task.title,
+            "Status": task.status.title(),
+            "Deadline": task.deadline.strftime("%d %b %Y") if task.deadline else "No fixed date",
+            "Citation": task.citation,
+        }
+        for task in tasks
+    ]
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+    for task in tasks:
+        render_task_card(task)
+
+
+def render_assistant(profile: CompanyProfile) -> None:
+    st.markdown('<div class="rw-section-title">Ask RegWatch</div>', unsafe_allow_html=True)
+    query = st.text_input(
+        "Ask about any regulation, deadline, change, or business impact.",
+        placeholder="What changed in branded packaged namkeen compliance requirements?",
+    )
+    if st.button("Ask", key="assistant_ask"):
+        if query:
+            with st.spinner("Resolving query..."):
+                st.session_state["last_query_result"] = get_query_agent().answer(query, profile.model_dump())
+    result = st.session_state.get("last_query_result")
+    if result:
+        current_time = datetime.now().strftime("%H:%M")
+        citations = "".join(f'<span class="rw-tag">{citation}</span>' for citation in sorted(set(result.get("citations", []))) if citation)
+        st.markdown(
+            f"""
+            <div class="rw-message">
+              <div class="rw-message-meta">
+                <span class="rw-message-intent">{result.get("query_type", "unknown")}</span>
+                <span class="rw-message-time">{current_time}</span>
+              </div>
+              <div class="rw-message-body">{result["answer"]}</div>
+              <div class="rw-tags">{citations}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def render_version_history() -> None:
+    from core.version_graph import VersionGraph
+
+    st.markdown('<div class="rw-section-title">Version History</div>', unsafe_allow_html=True)
+    recent = VersionGraph().get_recent_changes(days=90)
+    if not recent:
+        st.markdown('<div class="rw-empty">No recorded version history is available yet.</div>', unsafe_allow_html=True)
+        return
+    rows = [
+        {
+            "Document": item.get("doc_id", ""),
+            "Type": title_case(str(item.get("change_type", ""))),
+            "Severity": title_case(str(item.get("severity", ""))),
+            "Summary": str(item.get("new_text_summary", ""))[:140],
+        }
+        for item in recent
+    ]
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+
+
+def main() -> None:
+    inject_css()
+    init_session_state()
+    profile = load_profile()
+    render_header(profile)
+    result = st.session_state.get("last_result", {})
+    run_mode = render_sidebar(
+        profile,
+        result,
+        st.session_state["last_run_mode"],
+        st.session_state["last_run_at"],
+    )
+
+    control_left, control_right = st.columns([1.5, 1])
+    with control_left:
+        st.markdown(
+            """
+            <div class="rw-panel">
+              <div class="rw-section-title">Operator Run Control</div>
+              <p class="rw-section-copy">
+                Execute the pipeline against the selected source mode. Demo Mode is the stable review path for version-diff validation and stakeholder walkthroughs.
+              </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with control_right:
+        if st.button("Run Pipeline", use_container_width=False):
             with st.spinner("Executing pipeline..."):
                 st.session_state["last_result"] = run_pipeline_for_mode(profile, run_mode)
                 st.session_state["last_run_mode"] = run_mode
@@ -569,23 +983,19 @@ def main() -> None:
             st.success("Pipeline execution complete.")
 
     result = st.session_state.get("last_result", {})
-    render_overview(result, st.session_state["last_run_mode"], st.session_state["last_run_at"])
+    render_metrics(result, st.session_state["last_run_mode"], st.session_state["last_run_at"])
 
-    tab_dashboard, tab_tasks, tab_query, tab_graph = st.tabs(
-        ["Overview", "Tasks", "Assistant", "Version History"]
+    tab_overview, tab_tasks, tab_assistant, tab_history = st.tabs(
+        ["Dashboard", "Compliance Queue", "Assistant", "Version History"]
     )
-
-    with tab_dashboard:
-        render_dashboard_tab(result)
-
+    with tab_overview:
+        render_change_register(result.get("detected_changes", []))
     with tab_tasks:
-        render_tasks_tab(result)
-
-    with tab_query:
-        render_query_tab(profile)
-
-    with tab_graph:
-        render_graph_tab()
+        render_tasks(result.get("action_plan", []))
+    with tab_assistant:
+        render_assistant(profile)
+    with tab_history:
+        render_version_history()
 
 
 main()

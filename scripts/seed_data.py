@@ -6,6 +6,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+import shutil
 
 import httpx
 
@@ -198,11 +199,32 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip the default remote seed URLs.",
     )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clear runtime data before seeding.",
+    )
     return parser.parse_args()
+
+
+def clean_runtime_data() -> None:
+    targets = [
+        Path("data/chromadb"),
+        Path("data/registry.db"),
+        Path("data/version_graph.json"),
+        Path("data/checkpoints.db"),
+    ]
+    for target in targets:
+        if target.is_dir():
+            shutil.rmtree(target, ignore_errors=True)
+        elif target.exists():
+            target.unlink()
 
 
 def main() -> None:
     args = parse_args()
+    if args.clean:
+        clean_runtime_data()
     if not args.skip_remote:
         run_remote_seeds()
     if args.manifest:

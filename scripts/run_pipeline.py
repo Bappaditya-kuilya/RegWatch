@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
 
 import sqlite3
 
+from config.settings import DATA_DIR
 from core.models import CompanyProfile
 from graph.pipeline import build_pipeline
 
