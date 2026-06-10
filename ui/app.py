@@ -4,10 +4,9 @@ import json
 import sqlite3
 import sys
 from datetime import datetime
+from html import escape
 from pathlib import Path
 from typing import Any
-
-import pandas as pd
 import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,6 +114,11 @@ def inject_css() -> None:
           transform: translateY(-1px);
         }
 
+        .stButton > button:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: 2px;
+        }
+
         .stTextInput > div > div > input {
           background: var(--bg-elevated);
           color: var(--text-primary);
@@ -211,6 +215,20 @@ def inject_css() -> None:
 
         .rw-panel + .rw-panel {
           margin-top: 16px;
+        }
+
+        .rw-grid-4 {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 12px;
+          margin: 24px 0 16px 0;
+        }
+
+        .rw-grid-2 {
+          display: grid;
+          grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+          gap: 16px;
+          align-items: start;
         }
 
         .rw-section-title {
@@ -381,6 +399,39 @@ def inject_css() -> None:
           font-size: 11px;
         }
 
+        .rw-metric-card {
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
+          border-radius: 12px;
+          padding: 20px;
+          transition: border-color 180ms ease, transform 180ms ease;
+        }
+
+        .rw-metric-card:hover {
+          border-color: var(--border-default);
+          transform: translateY(-1px);
+        }
+
+        .rw-metric-label {
+          font-size: 12px;
+          color: var(--text-tertiary);
+          margin-bottom: 8px;
+        }
+
+        .rw-metric-value {
+          font-size: 32px;
+          line-height: 1.2;
+          font-weight: 600;
+          color: var(--text-primary);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .rw-metric-meta {
+          margin-top: 8px;
+          font-size: 11px;
+          color: var(--text-secondary);
+        }
+
         .rw-task-card {
           background: var(--bg-surface);
           border: 1px solid var(--border-subtle);
@@ -451,6 +502,18 @@ def inject_css() -> None:
           align-items: center;
         }
 
+        .rw-task-list {
+          display: grid;
+          gap: 12px;
+        }
+
+        .rw-group-title {
+          font-size: 13px;
+          font-weight: 500;
+          color: var(--text-secondary);
+          margin: 16px 0 12px 0;
+        }
+
         .rw-citation {
           font-family: var(--font-mono);
           font-size: 12px;
@@ -468,6 +531,11 @@ def inject_css() -> None:
 
         .rw-change-row:last-child {
           border-bottom: none;
+        }
+
+        .rw-change-stack {
+          display: grid;
+          gap: 8px;
         }
 
         .rw-change-type {
@@ -585,6 +653,75 @@ def inject_css() -> None:
           font-size: 14px;
         }
 
+        .rw-kv {
+          display: grid;
+          gap: 12px;
+        }
+
+        .rw-kv-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .rw-kv-row:last-child {
+          padding-bottom: 0;
+          border-bottom: none;
+        }
+
+        .rw-kv-label {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
+        .rw-kv-value {
+          font-size: 13px;
+          color: var(--text-primary);
+          text-align: right;
+          max-width: 55%;
+        }
+
+        .rw-history-list {
+          display: grid;
+          gap: 12px;
+        }
+
+        .rw-history-item {
+          padding: 16px;
+          background: var(--bg-surface);
+          border: 1px solid var(--border-subtle);
+          border-radius: 12px;
+        }
+
+        .rw-history-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+
+        .rw-history-doc {
+          font-family: var(--font-mono);
+          font-size: 12px;
+          color: var(--accent);
+        }
+
+        .rw-history-summary {
+          margin: 0;
+          font-size: 14px;
+          line-height: 1.6;
+          color: var(--text-primary);
+          max-width: 70ch;
+        }
+
+        .rw-history-meta {
+          margin-top: 8px;
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
         @keyframes pulse-critical {
           0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
           50% { opacity: 0.7; transform: scale(0.9); box-shadow: 0 0 0 4px rgba(248,113,113,0); }
@@ -631,8 +768,21 @@ def get_query_agent():
 def init_session_state() -> None:
     st.session_state.setdefault("last_result", {})
     st.session_state.setdefault("last_run_at", None)
-    st.session_state.setdefault("last_run_mode", "Demo Mode")
+    st.session_state.setdefault("last_run_mode", "Regulatory Corpus")
     st.session_state.setdefault("last_query_result", None)
+
+
+RUN_MODE_OPTIONS = [
+    "Controlled Review",
+    "Regulatory Corpus",
+    "Live Source Check",
+]
+
+RUN_MODE_HELP = {
+    "Controlled Review": "Uses the controlled fixture set for deterministic review and presentation.",
+    "Regulatory Corpus": "Runs against the seeded corpus already available in the local registry.",
+    "Live Source Check": "Polls live sources and should be used only outside presentation scenarios.",
+}
 
 
 def get_seeded_demo_doc_ids() -> list[str]:
@@ -674,6 +824,31 @@ def title_case(value: str) -> str:
 
 def priority_label(priority: int) -> str:
     return f"Priority {priority}"
+
+
+def dedupe_by_attr(items: list[Any], attr: str) -> list[Any]:
+    seen: set[str] = set()
+    deduped: list[Any] = []
+    for item in items:
+        value = getattr(item, attr, None)
+        if value is None:
+            deduped.append(item)
+            continue
+        key = str(value)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(item)
+    return deduped
+
+
+def normalize_result(result: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(result)
+    normalized["detected_changes"] = dedupe_by_attr(result.get("detected_changes", []), "change_id")
+    normalized["impact_assessments"] = dedupe_by_attr(result.get("impact_assessments", []), "change_id")
+    normalized["action_plan"] = dedupe_by_attr(result.get("action_plan", []), "task_id")
+    normalized["action_plan"] = sorted(normalized["action_plan"], key=lambda task: task.priority)
+    return normalized
 
 
 def severity_badge(severity: str) -> str:
@@ -718,6 +893,14 @@ def pipeline_status_html(result: dict[str, Any], run_mode: str, last_run_at: str
     )
 
 
+def format_run_mode_label(run_mode: str) -> str:
+    if run_mode == "Demo Mode":
+        return "Controlled Review"
+    if run_mode == "Live Scrape":
+        return "Live Source Check"
+    return run_mode
+
+
 def render_sidebar(profile: CompanyProfile, result: dict[str, Any], last_run_mode: str, last_run_at: str | None) -> str:
     with st.sidebar:
         st.markdown('<div class="rw-section-title">RegWatch</div>', unsafe_allow_html=True)
@@ -743,11 +926,13 @@ def render_sidebar(profile: CompanyProfile, result: dict[str, Any], last_run_mod
             """,
             unsafe_allow_html=True,
         )
-        st.markdown(pipeline_status_html(result, last_run_mode, last_run_at), unsafe_allow_html=True)
+        current_mode = format_run_mode_label(last_run_mode)
+        st.markdown(pipeline_status_html(result, current_mode, last_run_at), unsafe_allow_html=True)
         run_mode = st.radio(
             "Execution Mode",
-            ["Demo Mode", "Seeded Dataset", "Live Scrape"],
-            help="Demo Mode is the most stable path for controlled version-diff validation.",
+            RUN_MODE_OPTIONS,
+            index=RUN_MODE_OPTIONS.index(current_mode) if current_mode in RUN_MODE_OPTIONS else 1,
+            help=RUN_MODE_HELP[current_mode] if current_mode in RUN_MODE_HELP else RUN_MODE_HELP["Regulatory Corpus"],
         )
         st.markdown(
             """
@@ -768,16 +953,16 @@ def render_sidebar(profile: CompanyProfile, result: dict[str, Any], last_run_mod
 
 def run_pipeline_for_mode(profile: CompanyProfile, run_mode: str) -> dict[str, Any]:
     pipeline = get_pipeline()
-    if run_mode == "Demo Mode":
+    if run_mode == "Controlled Review":
         trigger = "seeded"
         doc_ids = ensure_demo_seeded()
-    elif run_mode == "Seeded Dataset":
+    elif run_mode == "Regulatory Corpus":
         trigger = "seeded"
         doc_ids = get_all_seeded_doc_ids()
     else:
         trigger = "manual"
         doc_ids = []
-    return pipeline.invoke(
+    result = pipeline.invoke(
         {
             "trigger": trigger,
             "company_profile": profile,
@@ -794,6 +979,7 @@ def run_pipeline_for_mode(profile: CompanyProfile, run_mode: str) -> dict[str, A
         },
         config={"configurable": {"thread_id": f"streamlit-{run_mode.lower().replace(' ', '-')}" }},
     )
+    return normalize_result(result)
 
 
 def render_header(profile: CompanyProfile) -> None:
@@ -801,14 +987,14 @@ def render_header(profile: CompanyProfile) -> None:
         f"""
         <div class="rw-topbar">
           <div>
-            <h1 class="rw-topbar-title">Compliance Intelligence Terminal</h1>
+            <h1 class="rw-topbar-title">RegWatch Compliance Operations</h1>
             <p class="rw-topbar-copy">
               Monitor regulatory version changes, assess applicability for {profile.company_name},
-              and convert detected amendments into action-ready compliance work.
+              and convert detected amendments into an auditable compliance queue.
             </p>
           </div>
           <div class="rw-code" style="font-size:12px;color:var(--text-tertiary);">
-            tenant={profile.state.lower().replace(' ', '_')}_food_processing
+            {profile.state} | {profile.business_type}
           </div>
         </div>
         """,
@@ -822,13 +1008,35 @@ def render_metrics(result: dict[str, Any], run_mode: str, last_run_at: str | Non
     assessments = result.get("impact_assessments", [])
     applicable = sum(1 for item in assessments if getattr(item, "is_applicable", False))
     critical = sum(1 for task in tasks if getattr(task, "priority", 5) == 1)
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Changes Detected", len(changes), help=f"Run mode: {run_mode}")
-    col2.metric("Applicable Changes", applicable)
-    col3.metric("Compliance Tasks", len(tasks))
-    col4.metric("Critical Tasks", critical)
+    st.markdown(
+        f"""
+        <div class="rw-grid-4">
+          <div class="rw-metric-card">
+            <div class="rw-metric-label">Changes detected</div>
+            <div class="rw-metric-value">{len(changes)}</div>
+            <div class="rw-metric-meta">Current execution scope</div>
+          </div>
+          <div class="rw-metric-card">
+            <div class="rw-metric-label">Applicable changes</div>
+            <div class="rw-metric-value">{applicable}</div>
+            <div class="rw-metric-meta">Matched to company profile</div>
+          </div>
+          <div class="rw-metric-card">
+            <div class="rw-metric-label">Compliance tasks</div>
+            <div class="rw-metric-value">{len(tasks)}</div>
+            <div class="rw-metric-meta">Open operational actions</div>
+          </div>
+          <div class="rw-metric-card" style="border-left:3px solid var(--critical);">
+            <div class="rw-metric-label">Critical tasks</div>
+            <div class="rw-metric-value">{critical}</div>
+            <div class="rw-metric-meta">Priority 1 obligations</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     if last_run_at:
-        st.caption(f"Last execution: {last_run_at}")
+        st.caption(f"Last execution: {last_run_at} | Mode: {format_run_mode_label(run_mode)}")
     if result.get("errors"):
         st.error("\n".join(result["errors"]))
 
@@ -847,12 +1055,14 @@ def render_change_register(changes: list[Any]) -> None:
               <div>{severity_badge(change.severity.value)}</div>
               <div><span class="rw-change-type">{title_case(change.change_type.value)}</span></div>
               <div>
-                <p class="rw-change-new">{change.new_text_summary}</p>
-                <p class="rw-change-old">Previously: {change.old_text_summary}</p>
+                <div class="rw-change-stack">
+                  <p class="rw-change-new">{escape(change.new_text_summary)}</p>
+                  <p class="rw-change-old">Previously: {escape(change.old_text_summary)}</p>
+                </div>
               </div>
               <div>
-                <span class="rw-change-source">{change.doc_id}</span>
-                <span class="rw-change-date">{change.new_version}</span>
+                <span class="rw-change-source">{escape(change.doc_id)}</span>
+                <span class="rw-change-date">{escape(change.new_version)}</span>
               </div>
               <div>
                 <div class="rw-confidence-track"><div class="rw-confidence-fill" style="width:{confidence}%"></div></div>
@@ -865,6 +1075,62 @@ def render_change_register(changes: list[Any]) -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def render_dashboard(result: dict[str, Any]) -> None:
+    tasks = result.get("action_plan", [])
+    changes = result.get("detected_changes", [])
+    assessments = result.get("impact_assessments", [])
+    applicable = sum(1 for item in assessments if getattr(item, "is_applicable", False))
+    critical_tasks = [task for task in tasks if getattr(task, "priority", 5) == 1]
+    spotlight_tasks = critical_tasks[:1] or tasks[:1]
+
+    left_column, right_column = st.columns([1.3, 0.7])
+    with left_column:
+        st.markdown(
+            """
+            <div class="rw-panel">
+              <div class="rw-section-title">Requires Action</div>
+              <p class="rw-section-copy">Highest-priority obligations surfaced from the latest pipeline execution.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if spotlight_tasks:
+            for task in spotlight_tasks:
+                render_task_card(task)
+        else:
+            st.markdown('<div class="rw-empty">No priority tasks are available for the current execution.</div>', unsafe_allow_html=True)
+    with right_column:
+        latest_change = changes[0] if changes else None
+        st.markdown(
+            """
+            <div class="rw-panel">
+              <div class="rw-section-title">Run Snapshot</div>
+              <div class="rw-kv">
+            """,
+            unsafe_allow_html=True,
+        )
+        snapshot_rows = [
+            ("Detected changes", str(len(changes))),
+            ("Applicable assessments", str(applicable)),
+            ("Open tasks", str(len(tasks))),
+            ("Latest source", getattr(latest_change, "doc_id", "No recent document")),
+        ]
+        for label, value in snapshot_rows:
+            st.markdown(
+                f"""
+                <div class="rw-kv-row">
+                  <span class="rw-kv-label">{escape(label)}</span>
+                  <span class="rw-kv-value">{escape(value)}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        st.markdown("</div></div>", unsafe_allow_html=True)
+
+    st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+    render_change_register(changes[:5])
+
+
 def render_task_card(task: Any) -> None:
     severity = "minor"
     if task.priority == 1:
@@ -875,6 +1141,9 @@ def render_task_card(task: Any) -> None:
     deadline_class = "rw-task-deadline"
     if task.deadline and (task.deadline - datetime.now()).days < 30:
         deadline_class += " rw-task-deadline-urgent"
+    penalty_html = ""
+    if task.penalty_if_missed:
+        penalty_html = f"<div class='rw-penalty'>Penalty: {escape(task.penalty_if_missed)}</div>"
     st.markdown(
         f"""
         <div class="rw-task-card rw-task-{severity}">
@@ -882,12 +1151,12 @@ def render_task_card(task: Any) -> None:
             {severity_badge(severity)}
             <span class="{deadline_class}">{deadline}</span>
           </div>
-          <h3 class="rw-task-title">{task.title}</h3>
-          <p class="rw-task-description">{task.description}</p>
-          {"<div class='rw-penalty'>Penalty: " + task.penalty_if_missed + "</div>" if task.penalty_if_missed else ""}
+          <h3 class="rw-task-title">{escape(task.title)}</h3>
+          <p class="rw-task-description">{escape(task.description)}</p>
+          {penalty_html}
           <div class="rw-task-footer">
-            <span class="rw-citation">{task.citation}</span>
-            <span class="rw-citation">{task.status.title()}</span>
+            <span class="rw-citation">{escape(task.citation)}</span>
+            <span class="rw-citation">{escape(task.status.title())}</span>
           </div>
         </div>
         """,
@@ -900,19 +1169,32 @@ def render_tasks(tasks: list[Any]) -> None:
     if not tasks:
         st.markdown('<div class="rw-empty">No compliance tasks are available for the current run.</div>', unsafe_allow_html=True)
         return
-    rows = [
-        {
-            "Priority": priority_label(task.priority),
-            "Title": task.title,
-            "Status": task.status.title(),
-            "Deadline": task.deadline.strftime("%d %b %Y") if task.deadline else "No fixed date",
-            "Citation": task.citation,
-        }
-        for task in tasks
+    pending = [task for task in tasks if getattr(task, "status", "") == "pending"]
+    acknowledged = [task for task in tasks if getattr(task, "status", "") == "acknowledged"]
+    completed = [task for task in tasks if getattr(task, "status", "") == "completed"]
+    st.markdown(
+        f"""
+        <div class="rw-panel">
+          <div class="rw-section-copy">
+            Pending {len(pending)} | Acknowledged {len(acknowledged)} | Completed {len(completed)}
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    grouped = [
+        ("Critical", [task for task in tasks if getattr(task, "priority", 5) == 1]),
+        ("Major", [task for task in tasks if getattr(task, "priority", 5) in (2, 3)]),
+        ("Minor", [task for task in tasks if getattr(task, "priority", 5) >= 4]),
     ]
-    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
-    for task in tasks:
-        render_task_card(task)
+    for label, group_tasks in grouped:
+        if not group_tasks:
+            continue
+        st.markdown(f'<div class="rw-group-title">{label}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="rw-task-list">', unsafe_allow_html=True)
+        for task in group_tasks:
+            render_task_card(task)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_assistant(profile: CompanyProfile) -> None:
@@ -928,15 +1210,19 @@ def render_assistant(profile: CompanyProfile) -> None:
     result = st.session_state.get("last_query_result")
     if result:
         current_time = datetime.now().strftime("%H:%M")
-        citations = "".join(f'<span class="rw-tag">{citation}</span>' for citation in sorted(set(result.get("citations", []))) if citation)
+        citations = "".join(
+            f'<span class="rw-tag">{escape(citation)}</span>'
+            for citation in sorted(set(result.get("citations", [])))
+            if citation
+        )
         st.markdown(
             f"""
             <div class="rw-message">
               <div class="rw-message-meta">
-                <span class="rw-message-intent">{result.get("query_type", "unknown")}</span>
+                <span class="rw-message-intent">{escape(result.get("query_type", "unknown"))}</span>
                 <span class="rw-message-time">{current_time}</span>
               </div>
-              <div class="rw-message-body">{result["answer"]}</div>
+              <div class="rw-message-body">{escape(result["answer"])}</div>
               <div class="rw-tags">{citations}</div>
             </div>
             """,
@@ -952,16 +1238,24 @@ def render_version_history() -> None:
     if not recent:
         st.markdown('<div class="rw-empty">No recorded version history is available yet.</div>', unsafe_allow_html=True)
         return
-    rows = [
-        {
-            "Document": item.get("doc_id", ""),
-            "Type": title_case(str(item.get("change_type", ""))),
-            "Severity": title_case(str(item.get("severity", ""))),
-            "Summary": str(item.get("new_text_summary", ""))[:140],
-        }
-        for item in recent
-    ]
-    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
+    st.markdown('<div class="rw-history-list">', unsafe_allow_html=True)
+    for item in recent[:12]:
+        st.markdown(
+            f"""
+            <div class="rw-history-item">
+              <div class="rw-history-head">
+                <span class="rw-history-doc">{escape(str(item.get("doc_id", "")))}</span>
+                {severity_badge(str(item.get("severity", "minor")))}
+              </div>
+              <p class="rw-history-summary">{escape(str(item.get("new_text_summary", "")))}</p>
+              <div class="rw-history-meta">
+                {escape(title_case(str(item.get("change_type", ""))))} | {escape(str(item.get("new_version", "Unknown version")))}
+              </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def main() -> None:
@@ -969,7 +1263,7 @@ def main() -> None:
     init_session_state()
     profile = load_profile()
     render_header(profile)
-    result = st.session_state.get("last_result", {})
+    result = normalize_result(st.session_state.get("last_result", {}))
     run_mode = render_sidebar(
         profile,
         result,
@@ -984,7 +1278,7 @@ def main() -> None:
             <div class="rw-panel">
               <div class="rw-section-title">Operator Run Control</div>
               <p class="rw-section-copy">
-                Execute the pipeline against the selected source mode. Demo Mode is the stable review path for version-diff validation and stakeholder walkthroughs.
+                Execute the pipeline against the selected source mode. Controlled Review is the stable path for rehearsals and external walkthroughs.
               </p>
             </div>
             """,
@@ -998,13 +1292,15 @@ def main() -> None:
                 st.session_state["last_run_at"] = datetime.now().strftime("%d %b %Y %H:%M")
             st.success("Pipeline execution complete.")
 
-    result = st.session_state.get("last_result", {})
+    result = normalize_result(st.session_state.get("last_result", {}))
     render_metrics(result, st.session_state["last_run_mode"], st.session_state["last_run_at"])
 
-    tab_overview, tab_tasks, tab_assistant, tab_history = st.tabs(
-        ["Dashboard", "Compliance Queue", "Assistant", "Version History"]
+    tab_dashboard, tab_changes, tab_tasks, tab_assistant, tab_history = st.tabs(
+        ["Dashboard", "Change Register", "Compliance Queue", "Ask RegWatch", "Version History"]
     )
-    with tab_overview:
+    with tab_dashboard:
+        render_dashboard(result)
+    with tab_changes:
         render_change_register(result.get("detected_changes", []))
     with tab_tasks:
         render_tasks(result.get("action_plan", []))
