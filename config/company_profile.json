@@ -1,0 +1,40 @@
+{
+  "company_name": "Pratiksha Foods Pvt Ltd",
+  "business_type": "Food Processing MSME - Edible Oils, Spices and Packaged Snacks",
+  "udyam_id": "UDYAM-WB-04-0018423",
+  "gstin": "19AABCP1234F1ZK",
+  "fssai_license": "10023022000874",
+  "product_categories": [
+    "packaged mustard oil",
+    "blended edible oil",
+    "ground spices and masala",
+    "branded packaged namkeen and fried snacks",
+    "ready-to-cook spice mixes"
+  ],
+  "hsn_codes": ["1514", "1518", "0910", "2103", "2106", "1901"],
+  "applicable_acts": [
+    "Central GST Act 2017",
+    "Food Safety and Standards Act 2006",
+    "Factories Act 1948",
+    "MSME Development Act 2006",
+    "Legal Metrology Act 2009",
+    "Environment Protection Act 1986"
+  ],
+  "employee_count_range": "25-100",
+  "state": "West Bengal",
+  "annual_turnover_range": "5-25 Cr",
+  "specific_watch_terms": [
+    "mustard oil",
+    "edible oil GST",
+    "front of pack labeling",
+    "FSSAI labeling amendment",
+    "packaged food labeling",
+    "HSN 1514",
+    "HSN 2106",
+    "namkeen GST rate",
+    "MSME delayed payment",
+    "trans fat regulation",
+    "food safety standards spices",
+    "Legal Metrology packaged commodity"
+  ]
+}
