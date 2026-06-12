@@ -1,15 +1,20 @@
 from __future__ import annotations
 
-import json
 import operator
-import os
-import re
 from datetime import datetime
 from typing import Annotated, TypedDict
 
 from langgraph.graph import END, StateGraph
 
-from core.models import CompanyProfile, ComplianceTask, ImpactAssessment, SemanticChange
+from core.llm import complete_structured, get_groq_client
+from core.models import (
+    ActionResponse,
+    CompanyProfile,
+    ComplianceTask,
+    ImpactAssessment,
+    ImpactResponse,
+    SemanticChange,
+)
 
 
 class RegWatchState(TypedDict):
@@ -30,12 +35,12 @@ class RegWatchState(TypedDict):
 def ingest_document(doc) -> tuple[str, bool]:
     from core.version_graph import VersionGraph
     from ingestion.processor import DocumentProcessor
+    from store import get_vector_store
     from store.doc_registry import DocumentRegistry
-    from store.vector_store import RegWatchVectorStore
 
     registry = DocumentRegistry()
     vg = VersionGraph()
-    vs = RegWatchVectorStore()
+    vs = get_vector_store()
     processor = DocumentProcessor()
 
     if not registry.hash_changed(doc.doc_id, doc.content_hash):
@@ -97,15 +102,13 @@ def sentinel_node(state: RegWatchState) -> dict:
 
 
 def diff_node(state: RegWatchState) -> dict:
-    from groq import Groq
-
     from core.diff_engine import SemanticDiffEngine
     from core.version_graph import VersionGraph
-    from store.vector_store import RegWatchVectorStore
+    from store import get_vector_store
 
-    llm = Groq(api_key=os.environ["GROQ_API_KEY"])
+    llm = get_groq_client()
     vg = VersionGraph()
-    vs = RegWatchVectorStore()
+    vs = get_vector_store()
     engine = SemanticDiffEngine(llm, vg)
 
     all_changes = []
@@ -126,9 +129,7 @@ def diff_node(state: RegWatchState) -> dict:
 
 
 def impact_mapper_node(state: RegWatchState) -> dict:
-    from groq import Groq
-
-    llm = Groq(api_key=os.environ["GROQ_API_KEY"])
+    llm = get_groq_client()
     profile = state["company_profile"]
     assessments = []
 
@@ -170,25 +171,16 @@ Respond ONLY with JSON:
             old_summary=change.old_text_summary,
             doc_id=change.doc_id,
         )
-        try:
-            resp = llm.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=400,
-            )
-            data = json.loads(resp.choices[0].message.content.strip())
-            assessments.append(ImpactAssessment(change_id=change.change_id, **data))
-        except Exception:
+        resp = complete_structured(llm, prompt, ImpactResponse, max_tokens=400)
+        if resp is None:
             continue
+        assessments.append(ImpactAssessment(change_id=change.change_id, **resp.model_dump()))
 
     return {"impact_assessments": assessments, "current_agent": "impact_mapper"}
 
 
 def action_planner_node(state: RegWatchState) -> dict:
-    from groq import Groq
-
-    llm = Groq(api_key=os.environ["GROQ_API_KEY"])
+    llm = get_groq_client()
     applicable = [a for a in state["impact_assessments"] if a.is_applicable and a.requires_action]
     change_map = {c.change_id: c for c in state["detected_changes"]}
     tasks = []
@@ -249,39 +241,33 @@ Respond ONLY with JSON:
         change = change_map.get(assessment.change_id)
         if not change:
             continue
-        try:
-            resp = llm.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt_template.format(
-                            summary=change.new_text_summary,
-                            context=change.raw_diff_context[:1000],
-                            operations=", ".join(assessment.affected_operations),
-                        ),
-                    }
-                ],
-                temperature=0.1,
-                max_tokens=400,
-            )
-            data = json.loads(resp.choices[0].message.content.strip())
-            deadline = _parse_deadline(data.get("deadline"), data.get("deadline_source", ""))
-            tasks.append(
-                ComplianceTask(
-                    task_id=f"task_{i:04d}",
-                    source_change_id=change.change_id,
-                    citation=f"{change.doc_id} - {change.affected_clauses}",
-                    deadline=deadline,
-                    title=data["title"],
-                    description=data["description"],
-                    deadline_source=data["deadline_source"],
-                    penalty_if_missed=data.get("penalty_if_missed"),
-                    priority=max(1, min(int(data["priority"]), 5)),
-                )
-            )
-        except Exception:
+        resp = complete_structured(
+            llm,
+            prompt_template.format(
+                summary=change.new_text_summary,
+                context=change.raw_diff_context[:1000],
+                operations=", ".join(assessment.affected_operations),
+            ),
+            ActionResponse,
+            max_tokens=400,
+        )
+        if resp is None:
             tasks.append(_fallback_task(i, change, assessment))
+            continue
+        deadline = _parse_deadline(resp.deadline, resp.deadline_source)
+        tasks.append(
+            ComplianceTask(
+                task_id=f"task_{i:04d}",
+                source_change_id=change.change_id,
+                citation=f"{change.doc_id} - {change.affected_clauses}",
+                deadline=deadline,
+                title=resp.title,
+                description=resp.description,
+                deadline_source=resp.deadline_source,
+                penalty_if_missed=resp.penalty_if_missed,
+                priority=max(1, min(resp.priority, 5)),
+            )
+        )
 
     tasks.sort(key=lambda t: t.priority)
     return {

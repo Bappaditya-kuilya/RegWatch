@@ -61,6 +61,40 @@ class ComplianceTask(BaseModel):
     action_url: Optional[str] = None
 
 
+class DiffResponse(BaseModel):
+    """Exact shape the diff LLM must return (the full SemanticChange is composed in code)."""
+
+    change_type: ChangeType
+    severity: ChangeSeverity
+    old_text_summary: str
+    new_text_summary: str
+    affected_clauses: list[str] = Field(default_factory=list)
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    key_phrase_changed: str = ""
+
+
+class ImpactResponse(BaseModel):
+    """Exact shape the impact-mapper LLM must return."""
+
+    is_applicable: bool
+    applicability_reason: str
+    affected_operations: list[str] = Field(default_factory=list)
+    affected_product_categories: list[str] = Field(default_factory=list)
+    risk_level: ChangeSeverity
+    requires_action: bool
+
+
+class ActionResponse(BaseModel):
+    """Exact shape the action-planner LLM must return (deadline parsed in code)."""
+
+    title: str
+    description: str
+    deadline: Optional[str] = None
+    deadline_source: str = ""
+    penalty_if_missed: Optional[str] = None
+    priority: int = Field(ge=1, le=5)
+
+
 class CompanyProfile(BaseModel):
     company_name: str
     business_type: str

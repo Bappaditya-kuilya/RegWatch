@@ -1,0 +1,38 @@
+# Render Blueprint — free web service for the RegWatch API.
+# Deploy: Render dashboard -> New -> Blueprint -> connect this repo.
+# Secrets are set in the dashboard (sync: false), never committed.
+#
+# Free tier sleeps after ~15 min idle. Keep it warm for demos with an external pinger
+# (UptimeRobot / cron-job.org) hitting https://<service>.onrender.com/health every 10 min.
+services:
+  - type: web
+    name: regwatch-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: JINA_API_KEY
+        sync: false
+      - key: EMBEDDING_PROVIDER
+        value: gemini
+      - key: VECTOR_BACKEND
+        value: qdrant
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false

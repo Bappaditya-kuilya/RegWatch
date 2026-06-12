@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import os
-
-from groq import Groq
-
+from core.llm import get_groq_client
 from core.version_graph import VersionGraph
-from store.vector_store import RegWatchVectorStore
+from store import get_vector_store
 
 ROUTER_PROMPT = """Classify this user query into exactly one category.
 Query: "{query}"
@@ -21,8 +18,8 @@ Respond with ONLY the category name, nothing else."""
 
 class QueryAgent:
     def __init__(self):
-        self.llm = Groq(api_key=os.environ["GROQ_API_KEY"])
-        self.vs = RegWatchVectorStore()
+        self.llm = get_groq_client()
+        self.vs = get_vector_store()
         self.vg = VersionGraph()
 
     def answer(self, query: str, profile: dict) -> dict:

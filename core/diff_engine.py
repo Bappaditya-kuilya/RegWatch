@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import difflib
-import json
 from typing import Optional
 
 from groq import Groq
 
-from core.models import ChangeSeverity, ChangeType, SemanticChange
+from core.llm import complete_structured
+from core.models import ChangeSeverity, ChangeType, DiffResponse, SemanticChange
 from core.version_graph import VersionGraph
 from ingestion.processor import ProcessedChunk
 
@@ -134,27 +134,19 @@ class SemanticDiffEngine:
             old_text=old_chunk.text[:1500],
             new_text=new_chunk.text[:1500],
         )
-        try:
-            resp = self.llm.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=512,
-            )
-            raw = resp.choices[0].message.content.strip()
-            data = json.loads(raw)
-            return SemanticChange(
-                change_id=f"{doc_id}_change_{idx:04d}",
-                doc_id=doc_id,
-                old_version=old_chunk.version,
-                new_version=new_chunk.version,
-                change_type=ChangeType(data["change_type"]),
-                severity=ChangeSeverity(data["severity"]),
-                old_text_summary=data["old_text_summary"],
-                new_text_summary=data["new_text_summary"],
-                affected_clauses=data.get("affected_clauses", []),
-                confidence=float(data.get("confidence", 0.7)),
-                raw_diff_context=old_chunk.text[:300] + "\n\n-> CHANGED TO ->\n\n" + new_chunk.text[:300],
-            )
-        except (json.JSONDecodeError, KeyError, ValueError):
+        resp = complete_structured(self.llm, prompt, DiffResponse, max_tokens=512)
+        if resp is None:
             return None
+        return SemanticChange(
+            change_id=f"{doc_id}_change_{idx:04d}",
+            doc_id=doc_id,
+            old_version=old_chunk.version,
+            new_version=new_chunk.version,
+            change_type=resp.change_type,
+            severity=resp.severity,
+            old_text_summary=resp.old_text_summary,
+            new_text_summary=resp.new_text_summary,
+            affected_clauses=resp.affected_clauses,
+            confidence=resp.confidence,
+            raw_diff_context=old_chunk.text[:300] + "\n\n-> CHANGED TO ->\n\n" + new_chunk.text[:300],
+        )

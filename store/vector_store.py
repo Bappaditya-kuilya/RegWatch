@@ -1,75 +1,17 @@
 from __future__ import annotations
 
-import os
-from typing import Any
-
 import chromadb
-import cohere
 
 from config.settings import DATA_DIR
 from ingestion.processor import ProcessedChunk
-
-
-class CohereEmbedder:
-    MODEL_NAME = "embed-multilingual-v3.0"
-    BATCH_SIZE = 32
-
-    def __init__(self, api_key: str | None = None):
-        key = api_key or os.environ.get("COHERE_API_KEY")
-        if not key:
-            raise ValueError("COHERE_API_KEY is required for Cohere embeddings.")
-        self.client = cohere.ClientV2(api_key=key)
-
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return self._embed(texts, input_type="search_document")
-
-    def embed_queries(self, texts: list[str]) -> list[list[float]]:
-        return self._embed(texts, input_type="search_query")
-
-    def _embed(self, texts: list[str], input_type: str) -> list[list[float]]:
-        embeddings: list[list[float]] = []
-        for idx in range(0, len(texts), self.BATCH_SIZE):
-            batch = texts[idx : idx + self.BATCH_SIZE]
-            response = self.client.embed(
-                texts=batch,
-                model=self.MODEL_NAME,
-                input_type=input_type,
-                embedding_types=["float"],
-            )
-            embeddings.extend(self._extract_float_embeddings(response))
-        return embeddings
-
-    def _extract_float_embeddings(self, response: Any) -> list[list[float]]:
-        embeddings = getattr(response, "embeddings", None)
-        if embeddings is None and isinstance(response, dict):
-            embeddings = response.get("embeddings")
-
-        if embeddings is None:
-            raise ValueError("Cohere response did not contain embeddings.")
-
-        if isinstance(embeddings, dict):
-            if "float" in embeddings:
-                return embeddings["float"]
-
-        float_attr = getattr(embeddings, "float_", None)
-        if float_attr is not None:
-            return float_attr
-
-        float_attr = getattr(embeddings, "float", None)
-        if float_attr is not None:
-            return float_attr
-
-        if isinstance(embeddings, list):
-            return embeddings
-
-        raise ValueError("Unable to extract float embeddings from Cohere response.")
+from store.embeddings import get_embedder
 
 
 class RegWatchVectorStore:
     def __init__(self, persist_dir: str | None = None):
         persist_path = persist_dir or str(DATA_DIR / "chromadb")
         self.client = chromadb.PersistentClient(path=persist_path)
-        self.embedder = CohereEmbedder()
+        self.embedder = get_embedder()
         self.active = self.client.get_or_create_collection(
             name="regwatch_active",
             metadata={"hnsw:space": "cosine"},
