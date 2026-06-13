@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from core.llm import get_groq_client
-from core.version_graph import VersionGraph
 from store import get_vector_store
+from store.metadata import get_metadata_store
 
 ROUTER_PROMPT = """Classify this user query into exactly one category.
 Query: "{query}"
@@ -20,7 +20,7 @@ class QueryAgent:
     def __init__(self):
         self.llm = get_groq_client()
         self.vs = get_vector_store()
-        self.vg = VersionGraph()
+        self.meta = get_metadata_store()
 
     def answer(self, query: str, profile: dict) -> dict:
         intent = self._classify_intent(query)
@@ -72,7 +72,7 @@ Provide a clear, direct answer. End with: "Source: [citation]" """,
         }
 
     def _answer_change_history(self, query: str) -> dict:
-        recent_changes = self.vg.get_recent_changes(days=90)
+        recent_changes = self.meta.recent_changes(days=90)
         keywords = query.lower().split()
         relevant = [c for c in recent_changes if any(kw in str(c).lower() for kw in keywords)][:5]
         if not relevant:

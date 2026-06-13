@@ -17,7 +17,7 @@ import uuid
 
 from psycopg2.extras import Json
 
-from core.models import ComplianceTask
+from core.models import ComplianceTask, SemanticChange
 from db.connection import admin_cursor, tenant_cursor
 
 
@@ -127,3 +127,142 @@ def update_task_status(tenant_id: str, task_id: str, status: str) -> int:
                 (status, tenant_id, task_id),
             )
         return cur.rowcount
+
+
+# ── global regulatory corpus (admin; no RLS) — replaces DocumentRegistry + VersionGraph ──
+
+def hash_changed(doc_id: str, new_hash: str) -> bool:
+    """True if the doc is new or its active version's content hash differs (=> re-ingest)."""
+    with admin_cursor() as cur:
+        cur.execute(
+            "SELECT content_hash FROM document_versions WHERE doc_id = %s AND status = 'active' LIMIT 1",
+            (doc_id,),
+        )
+        row = cur.fetchone()
+    return row is None or row[0] != new_hash
+
+
+def active_version_id(doc_id: str) -> str | None:
+    with admin_cursor() as cur:
+        cur.execute(
+            "SELECT version_id FROM document_versions WHERE doc_id = %s AND status = 'active' LIMIT 1",
+            (doc_id,),
+        )
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def previous_version_id(version_id: str) -> str | None:
+    with admin_cursor() as cur:
+        cur.execute(
+            "SELECT old_version_id FROM version_edges WHERE new_version_id = %s LIMIT 1",
+            (version_id,),
+        )
+        row = cur.fetchone()
+    return row[0] if row else None
+
+
+def register_version(
+    doc_id: str, source: str, title: str, url: str, version_date: str, content_hash: str
+) -> tuple[str, str | None]:
+    """Register a new active version atomically; supersede the prior active one.
+
+    Returns (version_id, previous_active_version_id_or_None).
+    """
+    version_id = f"{doc_id}_v{version_date}"
+    with admin_cursor() as cur:
+        cur.execute(
+            "SELECT version_id FROM document_versions WHERE doc_id = %s AND status = 'active' LIMIT 1",
+            (doc_id,),
+        )
+        row = cur.fetchone()
+        previous = row[0] if row else None
+
+        cur.execute(
+            "INSERT INTO regulatory_documents "
+            "(doc_id, source, title, url, current_version_id, last_updated_at) "
+            "VALUES (%s,%s,%s,%s,%s,NOW()) "
+            "ON CONFLICT (doc_id) DO UPDATE SET source=EXCLUDED.source, title=EXCLUDED.title, "
+            "  url=EXCLUDED.url, current_version_id=EXCLUDED.current_version_id, last_updated_at=NOW()",
+            (doc_id, source, title, url, version_id),
+        )
+        cur.execute(
+            "UPDATE document_versions SET status='superseded' WHERE doc_id=%s AND status='active'",
+            (doc_id,),
+        )
+        cur.execute(
+            "INSERT INTO document_versions (version_id, doc_id, version_date, content_hash, status) "
+            "VALUES (%s,%s,%s,%s,'active') ON CONFLICT (version_id) DO UPDATE SET status='active'",
+            (version_id, doc_id, version_date, content_hash),
+        )
+        if previous and previous != version_id:
+            cur.execute(
+                "INSERT INTO version_edges (new_version_id, old_version_id) VALUES (%s,%s) "
+                "ON CONFLICT DO NOTHING",
+                (version_id, previous),
+            )
+    return version_id, (previous if previous != version_id else None)
+
+
+def add_chunks(doc_id: str, version_id: str, chunks: list) -> None:
+    with admin_cursor() as cur:
+        for c in chunks:
+            cur.execute(
+                "INSERT INTO document_chunks (chunk_id, version_id, doc_id, section_title, char_start, char_end) "
+                "VALUES (%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (chunk_id) DO UPDATE SET version_id=EXCLUDED.version_id, "
+                "  section_title=EXCLUDED.section_title, char_start=EXCLUDED.char_start, char_end=EXCLUDED.char_end",
+                (c.chunk_id, version_id, doc_id, c.section_title, c.char_start, c.char_end),
+            )
+        cur.execute(
+            "UPDATE document_versions SET chunks_count=%s WHERE version_id=%s",
+            (len(chunks), version_id),
+        )
+
+
+def save_change(change: SemanticChange) -> None:
+    with admin_cursor() as cur:
+        cur.execute(
+            "INSERT INTO detected_changes "
+            "(change_id, doc_id, old_version, new_version, change_type, severity, "
+            " old_text_summary, new_text_summary, affected_clauses, confidence, raw_diff_context, detected_at) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW()) "
+            "ON CONFLICT (change_id) DO UPDATE SET "
+            "  old_text_summary=EXCLUDED.old_text_summary, new_text_summary=EXCLUDED.new_text_summary, "
+            "  severity=EXCLUDED.severity, change_type=EXCLUDED.change_type, confidence=EXCLUDED.confidence",
+            (
+                change.change_id, change.doc_id, change.old_version, change.new_version,
+                change.change_type.value, change.severity.value, change.old_text_summary,
+                change.new_text_summary, Json(change.affected_clauses), change.confidence,
+                change.raw_diff_context,
+            ),
+        )
+
+
+def recent_changes(days: int = 90) -> list[dict]:
+    cols = ("change_id", "doc_id", "change_type", "severity", "old_text_summary", "new_text_summary", "new_version", "detected_at")
+    with admin_cursor() as cur:
+        cur.execute(
+            f"SELECT {', '.join(cols)} FROM detected_changes "
+            "WHERE detected_at >= NOW() - (%s || ' days')::interval ORDER BY detected_at DESC",
+            (str(days),),
+        )
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
+def list_document_ids(prefix: str | None = None) -> list[str]:
+    with admin_cursor() as cur:
+        if prefix:
+            cur.execute("SELECT doc_id FROM regulatory_documents WHERE doc_id LIKE %s ORDER BY doc_id", (prefix + "%",))
+        else:
+            cur.execute("SELECT doc_id FROM regulatory_documents ORDER BY doc_id")
+        return [row[0] for row in cur.fetchall()]
+
+
+def reset_corpus() -> None:
+    """Truncate the global regulatory corpus (used by `seed_data --clean`)."""
+    with admin_cursor() as cur:
+        cur.execute(
+            "TRUNCATE regulatory_documents, document_versions, version_edges, "
+            "document_chunks, detected_changes RESTART IDENTITY CASCADE"
+        )

@@ -786,27 +786,21 @@ RUN_MODE_HELP = {
 
 
 def get_seeded_demo_doc_ids() -> list[str]:
-    db_path = Path("data/registry.db")
-    if not db_path.exists():
-        return []
-    conn = sqlite3.connect(db_path)
+    from store.metadata import get_metadata_store
+
     try:
-        rows = conn.execute("select doc_id from documents where doc_id = 'DEMO_NAMKEEN_NOTICE'").fetchall()
-        return [row[0] for row in rows]
-    finally:
-        conn.close()
+        return get_metadata_store().list_document_ids(prefix="DEMO_NAMKEEN_NOTICE")
+    except Exception:
+        return []
 
 
 def get_all_seeded_doc_ids() -> list[str]:
-    db_path = Path("data/registry.db")
-    if not db_path.exists():
-        return []
-    conn = sqlite3.connect(db_path)
+    from store.metadata import get_metadata_store
+
     try:
-        rows = conn.execute("select doc_id from documents order by doc_id").fetchall()
-        return [row[0] for row in rows]
-    finally:
-        conn.close()
+        return get_metadata_store().list_document_ids()
+    except Exception:
+        return []
 
 
 def ensure_demo_seeded() -> list[str]:
@@ -1231,10 +1225,10 @@ def render_assistant(profile: CompanyProfile) -> None:
 
 
 def render_version_history() -> None:
-    from core.version_graph import VersionGraph
+    from store.metadata import get_metadata_store
 
     st.markdown('<div class="rw-section-title">Version History</div>', unsafe_allow_html=True)
-    recent = VersionGraph().get_recent_changes(days=90)
+    recent = get_metadata_store().recent_changes(days=90)
     if not recent:
         st.markdown('<div class="rw-empty">No recorded version history is available yet.</div>', unsafe_allow_html=True)
         return

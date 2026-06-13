@@ -36,7 +36,7 @@ Respond ONLY with a JSON object (no markdown, no explanation):
 class SemanticDiffEngine:
     SIMILARITY_THRESHOLD = 0.92
 
-    def __init__(self, llm_client: Groq, version_graph: VersionGraph):
+    def __init__(self, llm_client: Groq, version_graph: VersionGraph | None = None):
         self.llm = llm_client
         self.vg = version_graph
 

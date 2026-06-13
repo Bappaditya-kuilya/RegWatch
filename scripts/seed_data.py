@@ -220,6 +220,14 @@ def clean_runtime_data() -> None:
         elif target.exists():
             target.unlink()
 
+    # When the metadata backend is cloud, also reset the global corpus tables.
+    try:
+        from store.metadata import get_metadata_store
+
+        get_metadata_store().reset_corpus()
+    except Exception as exc:
+        print(json.dumps({"mode": "clean", "reset_corpus": "skipped", "reason": str(exc)[:120]}))
+
 
 def main() -> None:
     args = parse_args()

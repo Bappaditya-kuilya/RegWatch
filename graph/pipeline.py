@@ -33,22 +33,19 @@ class RegWatchState(TypedDict):
 
 
 def ingest_document(doc) -> tuple[str, bool]:
-    from core.version_graph import VersionGraph
     from ingestion.processor import DocumentProcessor
     from store import get_vector_store
-    from store.doc_registry import DocumentRegistry
+    from store.metadata import get_metadata_store
 
-    registry = DocumentRegistry()
-    vg = VersionGraph()
+    meta = get_metadata_store()
     vs = get_vector_store()
     processor = DocumentProcessor()
 
-    if not registry.hash_changed(doc.doc_id, doc.content_hash):
+    if not meta.hash_changed(doc.doc_id, doc.content_hash):
         return "", False
 
     version_date = doc.published_date.date().isoformat()
-    previous_version = registry.get_current_version(doc.doc_id)
-    version_id = registry.register_new_version(
+    version_id, previous_version = meta.register_version(
         doc_id=doc.doc_id,
         source=doc.source,
         title=doc.title,
@@ -58,14 +55,7 @@ def ingest_document(doc) -> tuple[str, bool]:
     )
     chunks = processor.process(doc, version_id)
     vs.ingest_version(chunks, source=doc.source, is_latest=True)
-    vg.add_document(doc.doc_id, doc.source, doc.title)
-    vg.add_version(doc.doc_id, version_id, version_date, doc.content_hash)
-    if previous_version:
-        vg.supersede(version_id, previous_version)
-    for chunk in chunks:
-        vg.add_chunk(version_id, chunk.chunk_id, chunk.section_title, chunk.char_start, chunk.char_end)
-    vg.save()
-    registry.log_ingestion(doc.doc_id, version_id, len(chunks), previous_version is not None)
+    meta.add_chunks(doc.doc_id, version_id, chunks)
     return doc.doc_id, previous_version is not None
 
 
@@ -103,18 +93,18 @@ def sentinel_node(state: RegWatchState) -> dict:
 
 def diff_node(state: RegWatchState) -> dict:
     from core.diff_engine import SemanticDiffEngine
-    from core.version_graph import VersionGraph
     from store import get_vector_store
+    from store.metadata import get_metadata_store
 
     llm = get_groq_client()
-    vg = VersionGraph()
+    meta = get_metadata_store()
     vs = get_vector_store()
-    engine = SemanticDiffEngine(llm, vg)
+    engine = SemanticDiffEngine(llm)
 
     all_changes = []
     for doc_id in state["new_doc_ids"]:
-        active_v = vg.get_active_version(doc_id)
-        prev_v = vg.get_previous_version(active_v) if active_v else None
+        active_v = meta.active_version_id(doc_id)
+        prev_v = meta.previous_version_id(active_v) if active_v else None
         if not prev_v or not active_v:
             continue
         old_chunks = vs.get_chunks_for_version(prev_v)
@@ -122,8 +112,7 @@ def diff_node(state: RegWatchState) -> dict:
         changes = engine.compute_diff(old_chunks, new_chunks, doc_id)
         all_changes.extend(changes)
         for change in changes:
-            vg.record_change(change)
-        vg.save()
+            meta.save_change(change)
 
     return {"detected_changes": all_changes, "current_agent": "diff"}
 
