@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import VERSION, config
-from api.routers import health
+from api.routers import auth, health, pipeline, query, tasks, tenant
 
 
 @asynccontextmanager
@@ -33,6 +33,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(health.router, tags=["health"])
+    app.include_router(auth.router, prefix="/auth", tags=["auth"])
+    app.include_router(tenant.router, prefix="/tenant", tags=["tenant"])
+    app.include_router(pipeline.router, prefix="/pipeline", tags=["pipeline"])
+    app.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+    app.include_router(query.router, prefix="/query", tags=["query"])
     return app
 
 

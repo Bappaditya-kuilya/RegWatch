@@ -266,3 +266,60 @@ def reset_corpus() -> None:
             "TRUNCATE regulatory_documents, document_versions, version_edges, "
             "document_chunks, detected_changes RESTART IDENTITY CASCADE"
         )
+
+
+# ── impact assessments + pipeline runs (per-tenant, RLS) ─────────────────────
+
+def save_impacts(tenant_id: str, impacts: list) -> None:
+    with tenant_cursor(tenant_id) as cur:
+        for a in impacts:
+            cur.execute(
+                "INSERT INTO impact_assessments "
+                "(tenant_id, change_id, is_applicable, applicability_reason, "
+                " affected_operations, affected_product_categories, risk_level, requires_action) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) "
+                "ON CONFLICT (tenant_id, change_id) DO UPDATE SET "
+                "  is_applicable=EXCLUDED.is_applicable, applicability_reason=EXCLUDED.applicability_reason, "
+                "  affected_operations=EXCLUDED.affected_operations, "
+                "  affected_product_categories=EXCLUDED.affected_product_categories, "
+                "  risk_level=EXCLUDED.risk_level, requires_action=EXCLUDED.requires_action",
+                (
+                    tenant_id, a.change_id, a.is_applicable, a.applicability_reason,
+                    Json(a.affected_operations), Json(a.affected_product_categories),
+                    a.risk_level.value, a.requires_action,
+                ),
+            )
+
+
+def create_pipeline_run(tenant_id: str, trigger: str = "manual", mode: str = "seeded") -> str:
+    run_id = str(uuid.uuid4())
+    with tenant_cursor(tenant_id) as cur:
+        cur.execute(
+            "INSERT INTO pipeline_runs (id, tenant_id, trigger, mode, status) "
+            "VALUES (%s,%s,%s,%s,'running')",
+            (run_id, tenant_id, trigger, mode),
+        )
+    return run_id
+
+
+def complete_pipeline_run(
+    tenant_id: str, run_id: str, changes: int, tasks: int,
+    status: str = "completed", error: str | None = None,
+) -> None:
+    with tenant_cursor(tenant_id) as cur:
+        cur.execute(
+            "UPDATE pipeline_runs SET status=%s, changes_detected=%s, tasks_generated=%s, "
+            "completed_at=NOW(), error_message=%s WHERE id=%s AND tenant_id=%s",
+            (status, changes, tasks, error, run_id, tenant_id),
+        )
+
+
+def list_pipeline_runs(tenant_id: str, limit: int = 20) -> list[dict]:
+    cols = ("id", "trigger", "mode", "status", "changes_detected", "tasks_generated", "started_at", "completed_at")
+    with tenant_cursor(tenant_id) as cur:
+        cur.execute(
+            f"SELECT {', '.join(cols)} FROM pipeline_runs WHERE tenant_id=%s "
+            "ORDER BY started_at DESC LIMIT %s",
+            (tenant_id, limit),
+        )
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
